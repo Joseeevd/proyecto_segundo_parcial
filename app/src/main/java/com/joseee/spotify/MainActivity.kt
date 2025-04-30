@@ -5,30 +5,27 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.*
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 import com.joseee.spotify.ui.theme.SpotifyTheme
 
@@ -38,14 +35,31 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            PantallaLogin()
+            App()
         }
     }
 }
 
+//Composable principal: Maneja las pantallas y como se muestran
 @Composable
-fun PantallaLogin() {
-    //Declaración de variables
+fun App() {
+    val navController = rememberNavController()
+
+    NavHost(navController = navController, startDestination = "login") {
+        composable("login") {
+            PantallaLogin(navController)
+        }
+        composable("principal") {
+            PantallaPrincipal(navController)
+            BarraDeNavegacion()
+        }
+    }
+}
+
+
+//Pantalla del login
+@Composable
+fun PantallaLogin(navController: NavController) {
     var usuario by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
     var mensaje by remember { mutableStateOf("") }
@@ -57,7 +71,7 @@ fun PantallaLogin() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Hab es puto", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "Inicio de Sesión", style = MaterialTheme.typography.headlineMedium)
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -79,9 +93,8 @@ fun PantallaLogin() {
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = {
-            // Validación simple
             if (usuario == "admin" && contrasena == "1234") {
-                mensaje = "¡Bienvenido, $usuario!"
+                navController.navigate("principal") // redirige a otra pantalla
             } else {
                 mensaje = "Usuario o contraseña incorrectos"
             }
@@ -95,8 +108,61 @@ fun PantallaLogin() {
     }
 }
 
+//Pantalla principal (Creación de playlists)
+@Composable
+fun PantallaPrincipal(navController: NavController) {
+
+    var nombrePlaylist by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(10.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Creación de playlists", style = MaterialTheme.typography.headlineLarge)
+
+        OutlinedTextField(
+            value = nombrePlaylist,
+            onValueChange = { nombrePlaylist = it },
+            label = { Text("Ingrese el nombre de la playlist") }
+        )
+        Button(onClick = {print("hola")}){
+            Text("Crear")
+        }
+
+        Spacer(modifier = Modifier.height(30.dp))
+
+        Button(
+            onClick = {navController.navigate("login")}
+        ){
+            Text("Regresar al inicio de sesión")
+        }
+    }
+
+}
+
+//Barra de navegación presente en toda la app
+@Composable
+fun BarraDeNavegacion() {
+
+    val tabs = listOf("Playlists", "Reproducir")
+    val selectedTab = remember { mutableStateOf(0) }
+
+    TabRow(selectedTabIndex = selectedTab.value) {
+        tabs.forEachIndexed { index, title ->
+            Tab(
+                selected = selectedTab.value == index,
+                onClick = { selectedTab.value = index },
+                text = { Text(text = title) },
+            )
+        }
+    }
+}
+
+
+//Vistas previas
 @Preview(showBackground = true)
 @Composable
 fun Preview() {
-    PantallaLogin()
+    App()
 }
