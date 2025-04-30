@@ -57,7 +57,7 @@ fun PantallaLogin() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Inicio de Sesión", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "Hab es puto", style = MaterialTheme.typography.headlineMedium)
 
         Spacer(modifier = Modifier.height(16.dp))
 
