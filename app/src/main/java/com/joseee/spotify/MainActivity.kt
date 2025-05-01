@@ -1,16 +1,22 @@
 package com.joseee.spotify
 
 import android.os.Bundle
+import android.service.autofill.OnClickAction
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -20,14 +26,22 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.runtime.*
 import androidx.compose.material3.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 
 import com.joseee.spotify.ui.theme.SpotifyTheme
+import java.net.URLEncoder
+import java.util.UUID
 
 
 class MainActivity : ComponentActivity() {
@@ -35,23 +49,59 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            App()
+            MaterialTheme {
+                // Crea el controlador de navegación
+                val navController = rememberNavController()
+
+                // Lista de playlists con estado
+                val playlists = remember { mutableStateListOf<Playlist>() }
+
+                // Llama a la función que maneja la navegación
+                App(navController, playlists)
+            }
         }
     }
 }
 
+// ESTRUCTURAS DE DATOS PARA LAS CANCIONES Y LAS PLAYLISTS
+data class Cancion(
+    val nombre: String,
+    val artista: String,
+    val duracion: String // Ej. "3:45"
+)
+
+data class Playlist(
+    val id: String = UUID.randomUUID().toString(),
+    var nombre: String,
+    val canciones: MutableList<Cancion> = mutableListOf()
+)
+
+const val RUTA_EDICION = "pantallaEdicionPlaylists"
+
+//Funcion de ruta para edicion de playlists
+fun rutaEdicionConNombre(nombre: String): String = "$RUTA_EDICION/${URLEncoder.encode(nombre, "UTF-8")}"
+
+//COMPONENTES DE LA APLICACION
+
 //Composable principal: Maneja las pantallas y como se muestran
 @Composable
-fun App() {
-    val navController = rememberNavController()
+fun App(navController: NavHostController, playlists: SnapshotStateList<Playlist>) {
 
-    NavHost(navController = navController, startDestination = "login") {
+    NavHost(navController = navController, startDestination = "principal") {
         composable("login") {
             PantallaLogin(navController)
         }
         composable("principal") {
-            PantallaPrincipal(navController)
-            BarraDeNavegacion()
+            PantallaPrincipal(navController, playlists)
+        }
+
+        //Este composable se encarga de asignar una ruta distinta para cada playlist existente
+        composable(
+            "$RUTA_EDICION/{nombre}",
+            arguments = listOf(navArgument("nombre") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val nombre = backStackEntry.arguments?.getString("nombre") ?: ""
+            PantallaEdicionPlaylists(nombre, playlists, navController)
         }
     }
 }
@@ -110,13 +160,14 @@ fun PantallaLogin(navController: NavController) {
 
 //Pantalla principal (Creación de playlists)
 @Composable
-fun PantallaPrincipal(navController: NavController) {
+fun PantallaPrincipal(navController: NavHostController, playlists: SnapshotStateList<Playlist>) {
 
     var nombrePlaylist by remember { mutableStateOf("") }
 
+
     Column(
         modifier = Modifier.fillMaxSize().padding(10.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Creación de playlists", style = MaterialTheme.typography.headlineLarge)
@@ -126,20 +177,78 @@ fun PantallaPrincipal(navController: NavController) {
             onValueChange = { nombrePlaylist = it },
             label = { Text("Ingrese el nombre de la playlist") }
         )
-        Button(onClick = {print("hola")}){
+        Button(onClick = {
+            //Valida que el campo no este vacio
+            if (nombrePlaylist.isNotBlank()) {
+                playlists.add(Playlist(nombre = nombrePlaylist))
+                nombrePlaylist = ""
+            }
+        }){
             Text("Crear")
         }
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        Button(
-            onClick = {navController.navigate("login")}
-        ){
-            Text("Regresar al inicio de sesión")
+        // Lista de playlists (Cards) con acceso a su respectivo espacio
+        LazyColumn {
+            items(playlists) { playlist ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Row(
+                        Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(playlist.nombre)
+                        Button(onClick = {
+                            navController.navigate(rutaEdicionConNombre(playlist.nombre))
+                        }) {
+                            Text("Editar")
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
         }
+
     }
 
 }
+
+@Composable
+fun PantallaEdicionPlaylists(nombre: String, playlists: SnapshotStateList<Playlist>,navController: NavHostController) {
+    val playlist = playlists.find { it.nombre == nombre }
+
+    if (playlist == null) {
+        Text("Playlist no encontrada")
+        return
+    }
+    Button(
+        onClick = ({navController.navigate("principal")})
+    ) { Text("Regresar")}
+
+    Column(
+        modifier = Modifier.padding(16.dp).fillMaxSize().background(Color.LightGray),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Editando: ${playlist.nombre}", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(30.dp))
+
+        Button(
+            onClick = ({})
+        ) {
+            Text("Agregar una canción")
+        }
+        // Aquí puedes agregar o editar canciones
+        playlist.canciones.forEach { cancion ->
+            Text("${cancion.nombre} - ${cancion.artista} (${cancion.duracion})")
+        }
+    }
+}
+
 
 //Barra de navegación presente en toda la app
 @Composable
@@ -158,11 +267,42 @@ fun BarraDeNavegacion() {
         }
     }
 }
+//Función para crear las cards de la pestaña de playlists
+@Composable
+fun PlaylistCard(name: String) {
+    Card(
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = name)
+            Button(onClick = {
+
+            }) {
+                Text("Editar")
+            }
+        }
+    }
+}
+
+//Funcion para generar la vista de las canciones en las playlists
+@Composable
+fun VistaCanciones(nombre: String, artista: String, duracion: String){
+
+}
 
 
 //Vistas previas
 @Preview(showBackground = true)
 @Composable
 fun Preview() {
-    App()
+    val navController = rememberNavController()
+    val playlists = remember { mutableStateListOf<Playlist>() }
+    App(navController, playlists)
 }
