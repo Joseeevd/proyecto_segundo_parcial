@@ -2,6 +2,7 @@ package com.joseee.spotify
 
 import android.os.Bundle
 import android.service.autofill.OnClickAction
+import android.widget.Space
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -87,7 +88,7 @@ fun rutaEdicionConNombre(nombre: String): String = "$RUTA_EDICION/${URLEncoder.e
 @Composable
 fun App(navController: NavHostController, playlists: SnapshotStateList<Playlist>) {
 
-    NavHost(navController = navController, startDestination = "principal") {
+    NavHost(navController = navController, startDestination = "login") {
         composable("login") {
             PantallaLogin(navController)
         }
@@ -250,23 +251,50 @@ fun PantallaEdicionPlaylists(nombre: String, playlists: SnapshotStateList<Playli
 }
 
 
-//Barra de navegación presente en toda la app
 @Composable
-fun BarraDeNavegacion() {
+fun PantallaAgregarCancion( /* navController: NavHostController, playlists: SnapshotStateList<Playlist> */ ){
 
-    val tabs = listOf("Playlists", "Reproducir")
-    val selectedTab = remember { mutableStateOf(0) }
+    // Notese la primera letra mayuscula en cada una de las variables
+    var Nombre by remember { mutableStateOf("")}
+    var Artista by remember { mutableStateOf("")}
+    var Duracion by remember { mutableStateOf("")}
 
-    TabRow(selectedTabIndex = selectedTab.value) {
-        tabs.forEachIndexed { index, title ->
-            Tab(
-                selected = selectedTab.value == index,
-                onClick = { selectedTab.value = index },
-                text = { Text(text = title) },
-            )
-        }
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Agregar una cancion", style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        OutlinedTextField(
+            value = Nombre,
+            onValueChange = { Nombre = it },
+            label = { Text("Título") }
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        OutlinedTextField(
+            value = Artista,
+            onValueChange = { Artista = it },
+            label = { Text("Artista") }
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        OutlinedTextField(
+            value = Duracion,
+            onValueChange = { Duracion = it },
+            label = { Text("Duración") }
+        )
+
     }
+
+
 }
+
+
 //Función para crear las cards de la pestaña de playlists
 @Composable
 fun PlaylistCard(name: String) {
@@ -302,7 +330,12 @@ fun VistaCanciones(nombre: String, artista: String, duracion: String){
 @Preview(showBackground = true)
 @Composable
 fun Preview() {
+
+    //PantallaAgregarCancion()
+
+
     val navController = rememberNavController()
     val playlists = remember { mutableStateListOf<Playlist>() }
     App(navController, playlists)
+
 }
